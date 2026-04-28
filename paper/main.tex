@@ -1,0 +1,77 @@
+\documentclass{article}
+
+% The course guidelines require the NeurIPS LaTeX template.
+% The provided Overleaf link currently points to the NeurIPS 2026 source.
+\usepackage[preprint]{neurips_2026}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+
+\title{Predicting NBA Player Scoring Performance Using Historical Statistics}
+
+\author{%
+  Alec Choi \\
+  NetID: alc409 \\
+  Section ID: TBD \\
+  \And
+  Andre Sumilang \\
+  NetID: aas504 \\
+  Section ID: TBD \\
+  \And
+  Ryan Shentu \\
+  NetID: rs2281 \\
+  Section ID: TBD \\
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This project studies whether NBA player scoring performance, measured as points per game, can be predicted from historical player-season statistics such as playing time, shot volume, shooting efficiency, free throw volume, and box score contributions. Using the NBA subset of the Kaggle NBA Stats (1947-present) dataset snapshot downloaded on April 28, 2026, we compare linear and tree-based regression models and evaluate their performance using MAE, MSE, RMSE, and $R^2$. Code: \url{https://github.com/alecchoi8/Intro-to-DS---Final-Project} Video: \url{TODO}
+\end{abstract}
+
+\section{Introduction}
+
+Sports analytics has become central to evaluating player performance and understanding team offense. This project asks whether a player's points per game can be predicted from player-season statistics available in historical NBA data.
+
+\section{Related Work}
+
+TODO: Discuss basketball analytics, player performance modeling, Basketball-Reference style box score data, and prior use of regression models for sports prediction.
+
+\section{Data}
+
+TODO: Describe the Kaggle NBA Stats (1947-present) dataset, the April 28, 2026 snapshot, NBA-only filtering, player-season observation level, and manual aggregation of multi-team player seasons.
+
+\section{Method}
+
+TODO: Describe preprocessing, feature selection, train/test split, and model pipelines. Required models include Linear Regression, Decision Tree Regression, and Random Forest Regression. Optional comparison models may include regularized regression or gradient boosting.
+
+\section{Evaluation}
+
+TODO: Report MAE, MSE, RMSE, and $R^2$ for each model. Include a performance table and actual-versus-predicted plot.
+
+\section{Discussion}
+
+TODO: Interpret model results, key predictors, feature importances, and what the results suggest about NBA scoring output.
+
+\section{Limitations}
+
+TODO: Discuss era effects, missing historical statistics, rule changes, incomplete modern-season data if relevant, and the fact that some scoring component features are closely related to the target.
+
+\section{Conclusion}
+
+TODO: Summarize findings and future extensions.
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

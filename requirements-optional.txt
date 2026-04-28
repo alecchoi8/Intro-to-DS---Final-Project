@@ -1,0 +1,5 @@
+# Optional tools. Kaggle API is free but requires account credentials.
+kaggle>=1.6
+
+# Optional stronger model. Install only if we decide the extra dependency is worth it.
+xgboost>=2.0
