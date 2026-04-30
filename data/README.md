@@ -2,13 +2,27 @@
 
 The raw Kaggle files are not committed to Git. Download them locally before running preprocessing notebooks or scripts.
 
-## Manual Download
+## Current Snapshot
+
+- Dataset: <https://www.kaggle.com/datasets/sumitrodatta/nba-aba-baa-stats>
+- Kaggle handle: `sumitrodatta/nba-aba-baa-stats`
+- Downloaded on: `2026-04-30`
+- Download method: KaggleHub `dataset_download`
+- Extracted raw CSV files: `22`
+- Extracted CSV size: approximately `30.87 MB`
+
+## KaggleHub Download
+
+```powershell
+python scripts/download_kaggle_dataset.py
+```
+
+## Manual Download Fallback
 
 1. Open the Kaggle dataset page: <https://www.kaggle.com/datasets/sumitrodatta/nba-aba-baa-stats>
-2. Download the latest available dataset snapshot on `2026-04-28`.
-3. Save the downloaded ZIP under `data/raw/`.
-4. Extract the CSV files into `data/raw/nba-aba-baa-stats/`.
-5. Record the exact Kaggle version, download timestamp, and file list in this README or a future data snapshot note.
+2. Download the latest available dataset snapshot.
+3. Save or extract the CSV files under `data/raw/`.
+4. Record the exact Kaggle version, download timestamp, and file list in this README or a future data snapshot note.
 
 ## Analysis Scope
 
@@ -19,4 +33,4 @@ The raw Kaggle files are not committed to Git. Download them locally before runn
 
 ## Expected Useful Files
 
-The Kaggle data card indicates that the dataset includes player per-game stats, player totals, player advanced stats, player shooting stats, and season/player information tables. We will inspect the exact CSV names after download and update the preprocessing code accordingly.
+The current snapshot includes player per-game stats, player totals, player advanced stats, player shooting stats, and season/player information tables. See [DATA_INVENTORY.md](DATA_INVENTORY.md) for the inspected file list and key schema notes.

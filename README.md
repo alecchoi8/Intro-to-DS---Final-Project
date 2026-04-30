@@ -19,7 +19,7 @@ Primary dataset: [NBA Stats (1947-present)](https://www.kaggle.com/datasets/sumi
 
 Project data policy:
 
-- Use the latest Kaggle dataset snapshot available on `2026-04-28`.
+- Use the latest Kaggle dataset snapshot downloaded on `2026-04-30`.
 - Use NBA rows only, excluding BAA and ABA rows.
 - Aggregate multi-team player seasons manually instead of relying blindly on team-level duplicate rows.
 - Keep raw data out of Git. See [data/README.md](data/README.md) for setup instructions.

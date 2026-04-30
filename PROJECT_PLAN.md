@@ -1,6 +1,6 @@
 # Project Plan
 
-Current planning date: `2026-04-28`
+Current planning date: `2026-04-30`
 
 ## Confirmed Requirements
 
@@ -12,7 +12,7 @@ Current planning date: `2026-04-28`
 - Code must be available through a public GitHub repository.
 - Video presentation must be at most 15 minutes, recorded using Zoom or another cloud-hosted option.
 - All group members must appear in the video.
-- Dataset should use the latest Kaggle snapshot available on `2026-04-28`.
+- Dataset should use the latest Kaggle snapshot downloaded on `2026-04-30`.
 - Analysis should use NBA rows only.
 - Multi-team player seasons should be manually aggregated.
 - Features based on shooting volume and efficiency are allowed.
@@ -38,9 +38,9 @@ Goal: freeze the exact Kaggle dataset snapshot used for the project.
 
 Tasks:
 
-- Manually download the Kaggle ZIP from the project dataset page.
-- Store the ZIP or extracted files under `data/raw/`.
-- Record download date, Kaggle dataset version if visible, and source URL.
+- Download the Kaggle dataset with KaggleHub or manually from the project dataset page.
+- Store extracted files under `data/raw/`.
+- Record download date, dataset handle, source URL, and file inventory.
 - Inspect available files and identify the player per-game, player totals, and season info tables.
 
 Git checkpoint: `Document data snapshot and schema`
