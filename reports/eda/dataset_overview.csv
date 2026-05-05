@@ -1,0 +1,12 @@
+metric,value
+player_seasons,25319.0
+unique_players,4915.0
+season_min,1950.0
+season_max,2026.0
+season_count,77.0
+traded_player_seasons,2805.0
+traded_player_season_share,0.11078636597022
+missing_target_rows,0.0
+mean_pts_per_game,8.704764176799477
+median_pts_per_game,7.180555555555555
+max_pts_per_game,50.3625

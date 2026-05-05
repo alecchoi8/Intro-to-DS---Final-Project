@@ -66,6 +66,14 @@ python scripts/build_modeling_dataset.py
 
 This creates `data/processed/nba_player_seasons_modeling.csv` locally. Raw and processed CSVs are intentionally ignored by Git; the scripts and data documentation are committed so the dataset can be rebuilt.
 
+## Reproduce EDA Outputs
+
+```powershell
+python scripts/run_eda.py
+```
+
+This creates summary tables under `reports/eda/` and selected figures under `figures/eda/`.
+
 ## Final Deliverables
 
 - Public GitHub repository link included at the end of the paper abstract.

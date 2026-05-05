@@ -4,5 +4,9 @@ kaggle>=1.6
 # Free public dataset downloader used for Phase 1 acquisition.
 kagglehub>=1.0
 
+# Optional notebook environment. The full Jupyter meta-package can hit Windows
+# long-path issues in some local runtimes, so install it only when needed.
+jupyter>=1.0
+
 # Optional stronger model. Install only if we decide the extra dependency is worth it.
 xgboost>=2.0

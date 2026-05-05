@@ -67,12 +67,12 @@ Goal: understand the data and produce paper-ready visuals.
 
 Tasks:
 
-- Summarize dataset coverage by season.
-- Plot points-per-game distribution.
-- Plot relationships between PPG and minutes, attempts, efficiency, assists, rebounds, steals, and blocks.
-- Build a correlation heatmap.
-- Compare scoring trends across eras.
-- Save selected figures to `figures/`.
+- Summarize dataset coverage by season. Completed in `reports/eda/season_summary.csv`.
+- Plot points-per-game distribution. Completed.
+- Plot relationships between PPG and minutes, attempts, efficiency, assists, rebounds, steals, and blocks. Completed through correlation tables, a minutes hexbin, and feature correlation plots.
+- Build a correlation heatmap. Completed.
+- Compare scoring trends across seasons. Completed.
+- Save selected figures to `figures/eda/`. Completed.
 
 Git checkpoint: `Add exploratory analysis figures`
 
