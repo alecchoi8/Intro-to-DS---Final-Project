@@ -58,6 +58,14 @@ reports/           Intermediate notes, tables, and presentation planning
 src/               Reusable Python code for preprocessing, modeling, and evaluation
 ```
 
+## Reproduce the Processed Dataset
+
+```powershell
+python scripts/build_modeling_dataset.py
+```
+
+This creates `data/processed/nba_player_seasons_modeling.csv` locally. Raw and processed CSVs are intentionally ignored by Git; the scripts and data documentation are committed so the dataset can be rebuilt.
+
 ## Final Deliverables
 
 - Public GitHub repository link included at the end of the paper abstract.

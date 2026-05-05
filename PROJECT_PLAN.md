@@ -51,13 +51,13 @@ Goal: build a clean NBA player-season modeling table.
 
 Tasks:
 
-- Load raw CSV files.
-- Filter to NBA rows only.
-- Identify player-season rows split across multiple teams.
-- Aggregate traded-player rows manually using totals where needed.
-- Recompute per-game features from season totals when appropriate.
-- Handle missing values and era-specific unavailable stats.
-- Save a processed modeling dataset under `data/processed/`.
+- Load raw CSV files. Completed in `scripts/build_modeling_dataset.py`.
+- Filter to NBA rows only. Completed.
+- Identify player-season rows split across multiple teams. Completed.
+- Aggregate traded-player rows manually from team-specific totals. Completed.
+- Recompute per-game features and shooting percentages from season totals. Completed.
+- Handle era-specific three-point line availability. Completed.
+- Save a processed modeling dataset under `data/processed/`. Completed locally; ignored by Git.
 
 Git checkpoint: `Add NBA player-season preprocessing pipeline`
 

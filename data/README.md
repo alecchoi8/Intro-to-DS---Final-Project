@@ -30,7 +30,10 @@ python scripts/download_kaggle_dataset.py
 - Target: player-season points per game.
 - Unit of observation: one player in one season.
 - Traded players: aggregate manually across teams using season totals before calculating per-game metrics.
+- Processed output: `data/processed/nba_player_seasons_modeling.csv`
 
 ## Expected Useful Files
 
 The current snapshot includes player per-game stats, player totals, player advanced stats, player shooting stats, and season/player information tables. See [DATA_INVENTORY.md](DATA_INVENTORY.md) for the inspected file list and key schema notes.
+
+See [PROCESSED_DATASET.md](PROCESSED_DATASET.md) for the cleaned modeling dataset schema and validation summary.
