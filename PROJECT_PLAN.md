@@ -83,8 +83,8 @@ Goal: define a defensible feature set for modeling.
 Tasks:
 
 - Separate target variable `PTS/G` from predictors.
-- Decide which columns are identifiers, metadata, targets, or model features.
-- Include playing time, shooting volume, shooting efficiency, free throws, rebounds, assists, steals, and blocks.
+- Decide which columns are identifiers, metadata, targets, or model features. Completed in `src/nba_scoring/modeling.py`.
+- Include playing time, shooting volume, shooting efficiency, free throws, rebounds, assists, steals, and blocks. Completed.
 - Optionally compare all-feature, offensive-only, and no-direct-scoring feature groups.
 
 Git checkpoint: `Define modeling feature sets`
@@ -95,10 +95,10 @@ Goal: train required and optional regression models.
 
 Tasks:
 
-- Create train/test split.
-- Build scikit-learn preprocessing and modeling pipelines.
-- Train Linear Regression, Decision Tree Regression, and Random Forest Regression.
-- Add at least one stronger comparison model if useful.
+- Create train/test split. Implemented in `src/nba_scoring/modeling.py`.
+- Build scikit-learn preprocessing and modeling pipelines. Implemented.
+- Train Linear Regression, Decision Tree Regression, and Random Forest Regression. Implemented.
+- Add at least one stronger comparison model if useful. Implemented with Ridge Regression and Histogram Gradient Boosting Regression.
 - Tune tree-based model hyperparameters with cross-validation.
 
 Git checkpoint: `Train baseline and tree regression models`
@@ -109,11 +109,11 @@ Goal: compare models and explain what drives scoring predictions.
 
 Tasks:
 
-- Evaluate MAE, MSE, RMSE, and R2 on the test set.
-- Compare model performance in a table.
-- Plot actual vs. predicted PPG.
-- Analyze Random Forest feature importances.
-- Interpret Linear Regression coefficients carefully after preprocessing.
+- Evaluate MAE, MSE, RMSE, and R2 on the test set. Implemented in `scripts/run_modeling.py`.
+- Compare model performance in a table. Implemented.
+- Plot actual vs. predicted PPG. Implemented.
+- Analyze Random Forest feature importances. Implemented.
+- Interpret Linear Regression coefficients carefully after preprocessing. Implemented through standardized coefficient output.
 - Discuss limitations such as era changes, missing historical stats, and feature leakage concerns.
 
 Git checkpoint: `Add model evaluation and interpretation`

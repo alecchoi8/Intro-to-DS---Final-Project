@@ -74,6 +74,16 @@ python scripts/run_eda.py
 
 This creates summary tables under `reports/eda/` and selected figures under `figures/eda/`.
 
+## Train and Evaluate Models
+
+```powershell
+python scripts/run_modeling.py
+```
+
+This trains scikit-learn regression models for predicting `pts_per_game`: Dummy Mean Baseline, Linear Regression, Ridge Regression, Decision Tree Regression, Random Forest Regression, and Histogram Gradient Boosting Regression.
+
+The script writes model comparison tables under `reports/modeling/`, selected figures under `figures/modeling/`, and the best fitted pipeline under `models/`.
+
 ## Final Deliverables
 
 - Public GitHub repository link included at the end of the paper abstract.

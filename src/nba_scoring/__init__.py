@@ -1,3 +1,3 @@
 """Utilities for the NBA scoring prediction final project."""
 
-__all__ = ["config", "eda", "preprocess"]
+__all__ = ["config", "eda", "modeling", "preprocess"]
