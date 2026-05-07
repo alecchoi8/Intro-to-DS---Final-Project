@@ -85,7 +85,7 @@ Tasks:
 - Separate target variable `PTS/G` from predictors.
 - Decide which columns are identifiers, metadata, targets, or model features. Completed in `src/nba_scoring/modeling.py`.
 - Include playing time, shooting volume, shooting efficiency, free throws, rebounds, assists, steals, and blocks. Completed.
-- Optionally compare all-feature, offensive-only, and no-direct-scoring feature groups.
+- Compare full and no-direct-scoring feature groups. Implemented.
 
 Git checkpoint: `Define modeling feature sets`
 
@@ -99,6 +99,7 @@ Tasks:
 - Build scikit-learn preprocessing and modeling pipelines. Implemented.
 - Train Linear Regression, Decision Tree Regression, and Random Forest Regression. Implemented.
 - Add at least one stronger comparison model if useful. Implemented with Ridge Regression and Histogram Gradient Boosting Regression.
+- Train every model on both the full feature set and a restricted set without direct scoring components. Implemented.
 - Tune tree-based model hyperparameters with cross-validation.
 
 Git checkpoint: `Train baseline and tree regression models`

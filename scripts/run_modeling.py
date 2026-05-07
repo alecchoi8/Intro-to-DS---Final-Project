@@ -16,7 +16,15 @@ def main() -> None:
     print(f"Modeling rows: {outputs['rows']}")
     print(f"Train rows: {outputs['train_rows']}")
     print(f"Test rows: {outputs['test_rows']}")
-    print(f"Best model: {outputs['best_model_label']} ({outputs['best_model_key']})")
+    print(
+        "Best overall model: "
+        f"{outputs['best_model_label']} ({outputs['best_model_key']}) "
+        f"using {outputs['best_feature_set_label']}"
+    )
+    print(
+        "Best no-direct-scoring model: "
+        f"{outputs['best_no_direct_model_label']} ({outputs['best_no_direct_model_key']})"
+    )
     print("Tables:")
     for path in outputs["table_paths"]:
         print(f"  {path}")

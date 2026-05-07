@@ -14,3 +14,8 @@ Expected local outputs:
 - `MODELING_SUMMARY.md`
 
 These tables support the final paper's Method, Evaluation, Discussion, and Limitations sections.
+
+The modeling pipeline evaluates both:
+
+- A full feature set with direct scoring components.
+- A restricted feature set that removes shot attempts, free throw attempts, and shooting percentages.

@@ -1,7 +1,13 @@
-model_key,model,train_rows,test_rows,mae,mse,rmse,r2
-hist_gradient_boosting,Hist Gradient Boosting Regressor,20255,5064,0.13015199068776398,0.0892762312675232,0.2987912837877357,0.997710970776023
-random_forest,Random Forest Regressor,20255,5064,0.21838845868801074,0.15256572767933074,0.39059663039935555,0.9960882375490423
-linear_regression,Linear Regression,20255,5064,0.4528082909915954,0.46032850729417124,0.6784751338805065,0.9881972458865498
-ridge_regression,Ridge Regression,20255,5064,0.45283246540064775,0.4603534007680622,0.6784934787955313,0.9881966076216006
-decision_tree,Decision Tree Regressor,20255,5064,0.5929355830349669,0.7369074216719312,0.8584331200926087,0.9811058038671234
-dummy_mean,Dummy Mean Baseline,20255,5064,4.996829195193774,39.0025036313746,6.245198446116392,-1.8362703498864263e-05
+fitted_model_key,feature_set_key,feature_set,feature_set_order,feature_count,model_key,model,model_order,train_rows,test_rows,mae,mse,rmse,r2
+full__hist_gradient_boosting,full,Full Feature Set,0,14,hist_gradient_boosting,Hist Gradient Boosting Regressor,5,20255,5064,0.13015199068776398,0.0892762312675232,0.2987912837877357,0.997710970776023
+full__random_forest,full,Full Feature Set,0,14,random_forest,Random Forest Regressor,4,20255,5064,0.21838845868801074,0.15256572767933077,0.39059663039935555,0.9960882375490423
+full__linear_regression,full,Full Feature Set,0,14,linear_regression,Linear Regression,1,20255,5064,0.4528082909915954,0.46032850729417124,0.6784751338805065,0.9881972458865498
+full__ridge_regression,full,Full Feature Set,0,14,ridge_regression,Ridge Regression,2,20255,5064,0.45283246540064775,0.4603534007680622,0.6784934787955313,0.9881966076216006
+full__decision_tree,full,Full Feature Set,0,14,decision_tree,Decision Tree Regressor,3,20255,5064,0.5929355830349669,0.7369074216719312,0.8584331200926087,0.9811058038671234
+full__dummy_mean,full,Full Feature Set,0,14,dummy_mean,Dummy Mean Baseline,0,20255,5064,4.996829195193774,39.0025036313746,6.245198446116392,-1.8362703498864263e-05
+no_direct_scoring__hist_gradient_boosting,no_direct_scoring,No Direct Scoring Components,1,8,hist_gradient_boosting,Hist Gradient Boosting Regressor,5,20255,5064,1.6391134378210301,5.532233375592221,2.352070019279235,0.8581543632521316
+no_direct_scoring__random_forest,no_direct_scoring,No Direct Scoring Components,1,8,random_forest,Random Forest Regressor,4,20255,5064,1.645525987691778,5.613479431064417,2.3692782510850043,0.856071226535132
+no_direct_scoring__decision_tree,no_direct_scoring,No Direct Scoring Components,1,8,decision_tree,Decision Tree Regressor,3,20255,5064,1.7702674044493967,6.527468468470708,2.5548910873989734,0.832636684246397
+no_direct_scoring__ridge_regression,no_direct_scoring,No Direct Scoring Components,1,8,ridge_regression,Ridge Regression,2,20255,5064,1.9355943973051972,7.349866246841668,2.7110636744351226,0.811550528147537
+no_direct_scoring__linear_regression,no_direct_scoring,No Direct Scoring Components,1,8,linear_regression,Linear Regression,1,20255,5064,1.9356161141726038,7.349848460177519,2.711060394048336,0.8115509841949469
+no_direct_scoring__dummy_mean,no_direct_scoring,No Direct Scoring Components,1,8,dummy_mean,Dummy Mean Baseline,0,20255,5064,4.996829195193774,39.0025036313746,6.245198446116392,-1.8362703498864263e-05

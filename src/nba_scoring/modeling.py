@@ -13,6 +13,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from sklearn.base import clone
 from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
@@ -51,7 +52,26 @@ FEATURE_COLUMNS = [
     "blk_per_game",
     "tov_per_game",
 ]
+DIRECT_SCORING_FEATURES = [
+    "fga_per_game",
+    "fg_percent",
+    "x3pa_per_game",
+    "x3p_percent",
+    "fta_per_game",
+    "ft_percent",
+]
+NO_DIRECT_SCORING_FEATURE_COLUMNS = [
+    feature for feature in FEATURE_COLUMNS if feature not in DIRECT_SCORING_FEATURES
+]
 IDENTIFIER_COLUMNS = ["season", "player_id", "player"]
+
+
+@dataclass(frozen=True)
+class FeatureSetSpec:
+    key: str
+    label: str
+    feature_columns: list[str]
+    description: str
 
 
 @dataclass(frozen=True)
@@ -69,8 +89,29 @@ def load_modeling_dataset(processed_data_dir: Path = PROCESSED_DATA_DIR) -> pd.D
     return pd.read_csv(dataset_path)
 
 
-def validate_modeling_columns(df: pd.DataFrame) -> None:
-    required_columns = FEATURE_COLUMNS + [TARGET]
+def build_feature_set_specs() -> list[FeatureSetSpec]:
+    return [
+        FeatureSetSpec(
+            key="full",
+            label="Full Feature Set",
+            feature_columns=FEATURE_COLUMNS,
+            description="Includes playing time, direct scoring volume, shooting efficiency, and box-score context.",
+        ),
+        FeatureSetSpec(
+            key="no_direct_scoring",
+            label="No Direct Scoring Components",
+            feature_columns=NO_DIRECT_SCORING_FEATURE_COLUMNS,
+            description="Excludes shot attempts, free throw attempts, and shooting percentages.",
+        ),
+    ]
+
+
+def get_required_feature_columns(feature_sets: list[FeatureSetSpec]) -> list[str]:
+    return sorted({feature for feature_set in feature_sets for feature in feature_set.feature_columns})
+
+
+def validate_modeling_columns(df: pd.DataFrame, required_features: list[str] | None = None) -> None:
+    required_columns = (required_features or FEATURE_COLUMNS) + [TARGET]
     missing_columns = [column for column in required_columns if column not in df.columns]
     if missing_columns:
         raise ValueError(f"Missing required modeling columns: {missing_columns}")
@@ -131,35 +172,36 @@ def build_model_specs() -> list[ModelSpec]:
     ]
 
 
-def build_preprocessor(scale_features: bool) -> ColumnTransformer:
+def build_preprocessor(scale_features: bool, feature_columns: list[str]) -> ColumnTransformer:
     numeric_steps: list[tuple[str, Any]] = [("imputer", SimpleImputer(strategy="median"))]
     if scale_features:
         numeric_steps.append(("scaler", StandardScaler()))
 
     return ColumnTransformer(
         transformers=[
-            ("numeric", Pipeline(numeric_steps), FEATURE_COLUMNS),
+            ("numeric", Pipeline(numeric_steps), feature_columns),
         ],
         remainder="drop",
         verbose_feature_names_out=False,
     )
 
 
-def build_pipeline(spec: ModelSpec) -> Pipeline:
+def build_pipeline(spec: ModelSpec, feature_columns: list[str]) -> Pipeline:
     return Pipeline(
         steps=[
-            ("preprocess", build_preprocessor(spec.scale_features)),
-            ("model", spec.estimator),
+            ("preprocess", build_preprocessor(spec.scale_features, feature_columns)),
+            ("model", clone(spec.estimator)),
         ]
     )
 
 
 def split_modeling_data(
     df: pd.DataFrame,
+    required_features: list[str] | None = None,
     test_size: float = TEST_SIZE,
     random_state: int = RANDOM_STATE,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    validate_modeling_columns(df)
+    validate_modeling_columns(df, required_features=required_features)
     model_df = df.dropna(subset=[TARGET]).copy()
     return train_test_split(
         model_df,
@@ -185,22 +227,25 @@ def clean_feature_names(names: Any) -> list[str]:
 
 def extract_feature_effects(
     fitted_models: dict[str, Pipeline],
-    specs_by_key: dict[str, ModelSpec],
+    model_lookup: dict[str, dict[str, Any]],
 ) -> pd.DataFrame:
     rows: list[dict[str, Any]] = []
 
-    for model_key, pipeline in fitted_models.items():
+    for fitted_model_key, pipeline in fitted_models.items():
         model = pipeline.named_steps["model"]
         preprocessor = pipeline.named_steps["preprocess"]
         feature_names = clean_feature_names(preprocessor.get_feature_names_out())
-        label = specs_by_key[model_key].label
+        model_info = model_lookup[fitted_model_key]
 
         if hasattr(model, "coef_"):
             for feature, coefficient in zip(feature_names, model.coef_):
                 rows.append(
                     {
-                        "model_key": model_key,
-                        "model": label,
+                        "fitted_model_key": fitted_model_key,
+                        "feature_set_key": model_info["feature_set_key"],
+                        "feature_set": model_info["feature_set"],
+                        "model_key": model_info["model_key"],
+                        "model": model_info["model"],
                         "feature": feature,
                         "effect_type": "standardized_coefficient",
                         "value": float(coefficient),
@@ -211,8 +256,11 @@ def extract_feature_effects(
             for feature, importance in zip(feature_names, model.feature_importances_):
                 rows.append(
                     {
-                        "model_key": model_key,
-                        "model": label,
+                        "fitted_model_key": fitted_model_key,
+                        "feature_set_key": model_info["feature_set_key"],
+                        "feature_set": model_info["feature_set"],
+                        "model_key": model_info["model_key"],
+                        "model": model_info["model"],
                         "feature": feature,
                         "effect_type": "feature_importance",
                         "value": float(importance),
@@ -222,78 +270,125 @@ def extract_feature_effects(
 
     if not rows:
         return pd.DataFrame(
-            columns=["model_key", "model", "feature", "effect_type", "value", "rank_value"]
+            columns=[
+                "fitted_model_key",
+                "feature_set_key",
+                "feature_set",
+                "model_key",
+                "model",
+                "feature",
+                "effect_type",
+                "value",
+                "rank_value",
+            ]
         )
 
     return (
         pd.DataFrame(rows)
-        .sort_values(["model", "rank_value"], ascending=[True, False])
+        .sort_values(["feature_set_key", "model", "rank_value"], ascending=[True, True, False])
         .reset_index(drop=True)
     )
 
 
 def train_and_evaluate_models(df: pd.DataFrame) -> dict[str, Any]:
-    train_df, test_df = split_modeling_data(df)
+    feature_set_specs = build_feature_set_specs()
+    required_features = get_required_feature_columns(feature_set_specs)
+    train_df, test_df = split_modeling_data(df, required_features=required_features)
     model_specs = build_model_specs()
-    specs_by_key = {spec.key: spec for spec in model_specs}
-
-    x_train = train_df[FEATURE_COLUMNS]
-    y_train = train_df[TARGET]
-    x_test = test_df[FEATURE_COLUMNS]
-    y_test = test_df[TARGET]
 
     metrics_rows: list[dict[str, Any]] = []
     prediction_frames: list[pd.DataFrame] = []
     fitted_models: dict[str, Pipeline] = {}
+    model_lookup: dict[str, dict[str, Any]] = {}
 
     identifier_columns = [column for column in IDENTIFIER_COLUMNS if column in test_df.columns]
     prediction_base = test_df[identifier_columns + [TARGET]].reset_index(drop=True)
+    train_target = train_df[TARGET]
+    test_target = test_df[TARGET]
 
-    for spec in model_specs:
-        pipeline = build_pipeline(spec)
-        pipeline.fit(x_train, y_train)
-        y_pred = pipeline.predict(x_test)
+    for feature_set_order, feature_set in enumerate(feature_set_specs):
+        train_features = train_df[feature_set.feature_columns]
+        test_features = test_df[feature_set.feature_columns]
 
-        fitted_models[spec.key] = pipeline
-        metrics = evaluate_predictions(y_test, y_pred)
-        metrics_rows.append(
-            {
+        for model_order, spec in enumerate(model_specs):
+            fitted_model_key = f"{feature_set.key}__{spec.key}"
+            pipeline = build_pipeline(spec, feature_set.feature_columns)
+            pipeline.fit(train_features, train_target)
+            predictions = pipeline.predict(test_features)
+
+            fitted_models[fitted_model_key] = pipeline
+            model_lookup[fitted_model_key] = {
+                "feature_set_key": feature_set.key,
+                "feature_set": feature_set.label,
                 "model_key": spec.key,
                 "model": spec.label,
-                "train_rows": len(train_df),
-                "test_rows": len(test_df),
-                **metrics,
             }
-        )
+            metrics = evaluate_predictions(test_target, predictions)
+            metrics_rows.append(
+                {
+                    "fitted_model_key": fitted_model_key,
+                    "feature_set_key": feature_set.key,
+                    "feature_set": feature_set.label,
+                    "feature_set_order": feature_set_order,
+                    "feature_count": len(feature_set.feature_columns),
+                    "model_key": spec.key,
+                    "model": spec.label,
+                    "model_order": model_order,
+                    "train_rows": len(train_df),
+                    "test_rows": len(test_df),
+                    **metrics,
+                }
+            )
 
-        prediction_frame = prediction_base.copy()
-        prediction_frame["model_key"] = spec.key
-        prediction_frame["model"] = spec.label
-        prediction_frame["actual_pts_per_game"] = prediction_frame[TARGET]
-        prediction_frame["predicted_pts_per_game"] = y_pred
-        prediction_frame["residual"] = (
-            prediction_frame["actual_pts_per_game"] - prediction_frame["predicted_pts_per_game"]
-        )
-        prediction_frame = prediction_frame.drop(columns=[TARGET])
-        prediction_frames.append(prediction_frame)
+            prediction_frame = prediction_base.copy()
+            prediction_frame["fitted_model_key"] = fitted_model_key
+            prediction_frame["feature_set_key"] = feature_set.key
+            prediction_frame["feature_set"] = feature_set.label
+            prediction_frame["model_key"] = spec.key
+            prediction_frame["model"] = spec.label
+            prediction_frame["actual_pts_per_game"] = prediction_frame[TARGET]
+            prediction_frame["predicted_pts_per_game"] = predictions
+            prediction_frame["residual"] = (
+                prediction_frame["actual_pts_per_game"] - prediction_frame["predicted_pts_per_game"]
+            )
+            prediction_frame = prediction_frame.drop(columns=[TARGET])
+            prediction_frames.append(prediction_frame)
 
     metrics_df = (
         pd.DataFrame(metrics_rows)
-        .sort_values(["mae", "rmse"], ascending=[True, True])
+        .sort_values(["feature_set_order", "mae", "rmse"], ascending=[True, True, True])
         .reset_index(drop=True)
     )
     predictions_df = pd.concat(prediction_frames, ignore_index=True)
-    feature_effects_df = extract_feature_effects(fitted_models, specs_by_key)
-    best_model_key = str(metrics_df.iloc[0]["model_key"])
+    feature_effects_df = extract_feature_effects(fitted_models, model_lookup)
+    best_overall = metrics_df.sort_values(["mae", "rmse"], ascending=[True, True]).iloc[0]
+    no_direct_metrics = metrics_df[metrics_df["feature_set_key"].eq("no_direct_scoring")]
+    best_no_direct = no_direct_metrics.sort_values(["mae", "rmse"], ascending=[True, True]).iloc[0]
+    feature_sets_metadata = [
+        {
+            "feature_set_key": feature_set.key,
+            "feature_set": feature_set.label,
+            "description": feature_set.description,
+            "feature_columns": feature_set.feature_columns,
+        }
+        for feature_set in feature_set_specs
+    ]
 
     return {
         "metrics": metrics_df,
         "predictions": predictions_df,
         "feature_effects": feature_effects_df,
         "fitted_models": fitted_models,
-        "best_model_key": best_model_key,
-        "best_model_label": specs_by_key[best_model_key].label,
-        "feature_columns": FEATURE_COLUMNS,
+        "best_fitted_model_key": str(best_overall["fitted_model_key"]),
+        "best_model_key": str(best_overall["model_key"]),
+        "best_model_label": str(best_overall["model"]),
+        "best_feature_set_key": str(best_overall["feature_set_key"]),
+        "best_feature_set_label": str(best_overall["feature_set"]),
+        "best_no_direct_fitted_model_key": str(best_no_direct["fitted_model_key"]),
+        "best_no_direct_model_key": str(best_no_direct["model_key"]),
+        "best_no_direct_model_label": str(best_no_direct["model"]),
+        "feature_sets": feature_sets_metadata,
+        "direct_scoring_features": DIRECT_SCORING_FEATURES,
         "target": TARGET,
         "train_rows": len(train_df),
         "test_rows": len(test_df),
@@ -316,23 +411,46 @@ def save_current_figure(path: Path) -> Path:
     return path
 
 
-def plot_model_performance(metrics: pd.DataFrame, figure_dir: Path) -> Path:
-    plot_df = metrics.sort_values("mae", ascending=False)
+def plot_model_performance(metrics: pd.DataFrame, figure_dir: Path, include_dummy: bool = True) -> Path:
+    plot_df = metrics.copy()
+    filename = "model_performance_mae.png"
+    title_suffix = ""
+    if not include_dummy:
+        plot_df = plot_df[~plot_df["model_key"].eq("dummy_mean")]
+        filename = "model_performance_mae_without_dummy.png"
+        title_suffix = " Excluding Dummy Baseline"
+
+    model_order = (
+        plot_df[["model", "model_order"]]
+        .drop_duplicates()
+        .sort_values("model_order")["model"]
+        .tolist()
+    )
     plt.figure(figsize=(9, 5))
-    ax = sns.barplot(data=plot_df, x="mae", y="model", color="#3568a6")
-    ax.set_title("Model Test Error: Mean Absolute Error")
+    ax = sns.barplot(
+        data=plot_df,
+        x="mae",
+        y="model",
+        hue="feature_set",
+        order=model_order,
+        palette=["#3568a6", "#8e6a3a"],
+    )
+    ax.set_title(f"Model Test Error by Feature Set{title_suffix}")
     ax.set_xlabel("MAE (points per game)")
     ax.set_ylabel("")
-    return save_current_figure(figure_dir / "model_performance_mae.png")
+    ax.legend(title="Feature set", frameon=False)
+    return save_current_figure(figure_dir / filename)
 
 
 def plot_actual_vs_predicted(
     predictions: pd.DataFrame,
-    best_model_key: str,
+    fitted_model_key: str,
     best_model_label: str,
+    best_feature_set_label: str,
     figure_dir: Path,
+    filename: str,
 ) -> Path:
-    plot_df = predictions[predictions["model_key"].eq(best_model_key)]
+    plot_df = predictions[predictions["fitted_model_key"].eq(fitted_model_key)]
     lower = min(plot_df["actual_pts_per_game"].min(), plot_df["predicted_pts_per_game"].min())
     upper = max(plot_df["actual_pts_per_game"].max(), plot_df["predicted_pts_per_game"].max())
     margin = (upper - lower) * 0.05
@@ -348,17 +466,23 @@ def plot_actual_vs_predicted(
         color="#3568a6",
     )
     ax.plot([lower - margin, upper + margin], [lower - margin, upper + margin], "--", color="#c94f44")
-    ax.set_title(f"Actual vs. Predicted PPG: {best_model_label}")
+    ax.set_title(f"Actual vs. Predicted PPG: {best_model_label}\n{best_feature_set_label}")
     ax.set_xlabel("Actual points per game")
     ax.set_ylabel("Predicted points per game")
     ax.set_xlim(lower - margin, upper + margin)
     ax.set_ylim(lower - margin, upper + margin)
-    return save_current_figure(figure_dir / "actual_vs_predicted_best_model.png")
+    return save_current_figure(figure_dir / filename)
 
 
-def plot_random_forest_feature_importance(feature_effects: pd.DataFrame, figure_dir: Path) -> Path | None:
+def plot_random_forest_feature_importance(
+    feature_effects: pd.DataFrame,
+    feature_set_key: str,
+    feature_set_label: str,
+    figure_dir: Path,
+) -> Path | None:
     plot_df = feature_effects[
-        feature_effects["model_key"].eq("random_forest")
+        feature_effects["feature_set_key"].eq(feature_set_key)
+        & feature_effects["model_key"].eq("random_forest")
         & feature_effects["effect_type"].eq("feature_importance")
     ].nlargest(10, "rank_value")
     if plot_df.empty:
@@ -367,10 +491,10 @@ def plot_random_forest_feature_importance(feature_effects: pd.DataFrame, figure_
     plot_df = plot_df.sort_values("value")
     plt.figure(figsize=(8, 5))
     ax = sns.barplot(data=plot_df, x="value", y="feature", color="#7a9a3b")
-    ax.set_title("Random Forest Feature Importance")
+    ax.set_title(f"Random Forest Feature Importance\n{feature_set_label}")
     ax.set_xlabel("Importance")
     ax.set_ylabel("")
-    return save_current_figure(figure_dir / "random_forest_feature_importance.png")
+    return save_current_figure(figure_dir / f"random_forest_feature_importance_{feature_set_key}.png")
 
 
 def write_markdown_summary(
@@ -379,11 +503,9 @@ def write_markdown_summary(
     results: dict[str, Any],
     report_dir: Path,
 ) -> Path:
-    best = metrics.iloc[0]
-    random_forest_top = feature_effects[
-        feature_effects["model_key"].eq("random_forest")
-        & feature_effects["effect_type"].eq("feature_importance")
-    ].head(8)
+    best_overall = metrics.sort_values(["mae", "rmse"], ascending=[True, True]).iloc[0]
+    no_direct_metrics = metrics[metrics["feature_set_key"].eq("no_direct_scoring")]
+    best_no_direct = no_direct_metrics.sort_values(["mae", "rmse"], ascending=[True, True]).iloc[0]
 
     lines = [
         "# Modeling Summary",
@@ -400,48 +522,80 @@ def write_markdown_summary(
         "",
         "## Feature Set",
         "",
-        ", ".join(f"`{feature}`" for feature in FEATURE_COLUMNS),
-        "",
-        "## Test Performance",
-        "",
-        "| Model | MAE | MSE | RMSE | R2 |",
-        "| --- | ---: | ---: | ---: | ---: |",
     ]
 
-    for _, row in metrics.iterrows():
+    for feature_set in results["feature_sets"]:
+        lines.extend(
+            [
+                f"### {feature_set['feature_set']}",
+                "",
+                feature_set["description"],
+                "",
+                ", ".join(f"`{feature}`" for feature in feature_set["feature_columns"]),
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "Direct scoring components removed in the restricted feature set:",
+            "",
+            ", ".join(f"`{feature}`" for feature in results["direct_scoring_features"]),
+            "",
+            "## Test Performance",
+            "",
+            "| Feature Set | Model | MAE | MSE | RMSE | R2 |",
+            "| --- | --- | ---: | ---: | ---: | ---: |",
+        ]
+    )
+
+    for _, row in metrics.sort_values(["feature_set_order", "mae", "rmse"]).iterrows():
         lines.append(
-            f"| {row['model']} | {row['mae']:.3f} | {row['mse']:.3f} | "
-            f"{row['rmse']:.3f} | {row['r2']:.3f} |"
+            f"| {row['feature_set']} | {row['model']} | {row['mae']:.3f} | "
+            f"{row['mse']:.3f} | {row['rmse']:.3f} | {row['r2']:.3f} |"
         )
 
     lines.extend(
         [
             "",
-            "## Best Model",
+            "## Best Models",
             "",
-            f"- Best test MAE: `{best['model']}` with MAE `{best['mae']:.3f}` PPG and R2 `{best['r2']:.3f}`.",
+            f"- Best overall: `{best_overall['model']}` using `{best_overall['feature_set']}` with MAE `{best_overall['mae']:.3f}` PPG and R2 `{best_overall['r2']:.3f}`.",
+            f"- Best without direct scoring components: `{best_no_direct['model']}` with MAE `{best_no_direct['mae']:.3f}` PPG and R2 `{best_no_direct['r2']:.3f}`.",
             "",
             "## Random Forest Interpretation",
             "",
         ]
     )
 
-    if random_forest_top.empty:
-        lines.append("- Random Forest feature importances were not available.")
-    else:
-        for _, row in random_forest_top.iterrows():
-            lines.append(f"- `{row['feature']}`: importance `{row['value']:.3f}`.")
+    for feature_set in results["feature_sets"]:
+        random_forest_top = feature_effects[
+            feature_effects["feature_set_key"].eq(feature_set["feature_set_key"])
+            & feature_effects["model_key"].eq("random_forest")
+            & feature_effects["effect_type"].eq("feature_importance")
+        ].head(8)
+
+        lines.extend([f"### {feature_set['feature_set']}", ""])
+
+        if random_forest_top.empty:
+            lines.append("- Random Forest feature importances were not available.")
+        else:
+            for _, row in random_forest_top.iterrows():
+                lines.append(f"- `{row['feature']}`: importance `{row['value']:.3f}`.")
+
+        lines.append("")
 
     lines.extend(
         [
-            "",
             "## Paper Notes",
             "",
             "- This is a supervised regression task because the target is continuous points per game.",
+            "- The full feature set measures an upper-bound version of the task because shot volume and efficiency are direct scoring components.",
+            "- The restricted feature set is the more conservative test because it removes shot attempts, free throw attempts, and shooting percentages.",
             "- Linear Regression and Ridge provide interpretable linear baselines.",
             "- Decision Tree and Random Forest capture nonlinear relationships.",
             "- Histogram Gradient Boosting is the stronger optional scikit-learn comparison model.",
-            "- Shot-volume features are highly predictive, so the paper should discuss near-mechanical scoring-feature relationships as a limitation.",
+            "- The paper should report both feature sets so the results are accurate without leaning on direct scoring reconstruction.",
         ]
     )
 
@@ -452,23 +606,33 @@ def write_markdown_summary(
 
 def write_best_model(results: dict[str, Any], model_dir: Path = MODELS_DIR) -> list[Path]:
     model_dir.mkdir(parents=True, exist_ok=True)
-    best_model_key = results["best_model_key"]
+    best_fitted_model_key = results["best_fitted_model_key"]
+    best_no_direct_fitted_model_key = results["best_no_direct_fitted_model_key"]
     best_model_path = model_dir / "best_scoring_model.pkl"
+    best_no_direct_model_path = model_dir / "best_no_direct_scoring_model.pkl"
     metadata_path = model_dir / "best_scoring_model_metadata.json"
 
     with best_model_path.open("wb") as file:
-        pickle.dump(results["fitted_models"][best_model_key], file)
+        pickle.dump(results["fitted_models"][best_fitted_model_key], file)
+
+    with best_no_direct_model_path.open("wb") as file:
+        pickle.dump(results["fitted_models"][best_no_direct_fitted_model_key], file)
 
     metadata = {
-        "best_model_key": best_model_key,
+        "best_fitted_model_key": best_fitted_model_key,
         "best_model_label": results["best_model_label"],
+        "best_feature_set_key": results["best_feature_set_key"],
+        "best_feature_set_label": results["best_feature_set_label"],
+        "best_no_direct_fitted_model_key": best_no_direct_fitted_model_key,
+        "best_no_direct_model_label": results["best_no_direct_model_label"],
         "target": results["target"],
-        "feature_columns": results["feature_columns"],
+        "feature_sets": results["feature_sets"],
+        "direct_scoring_features": results["direct_scoring_features"],
         "test_size": results["test_size"],
         "random_state": results["random_state"],
     }
     metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-    return [best_model_path, metadata_path]
+    return [best_model_path, best_no_direct_model_path, metadata_path]
 
 
 def generate_modeling_outputs(
@@ -497,19 +661,33 @@ def generate_modeling_outputs(
 
     figure_paths: list[Path] = [
         plot_model_performance(results["metrics"], figure_dir),
+        plot_model_performance(results["metrics"], figure_dir, include_dummy=False),
         plot_actual_vs_predicted(
             results["predictions"],
-            results["best_model_key"],
+            results["best_fitted_model_key"],
             results["best_model_label"],
+            results["best_feature_set_label"],
             figure_dir,
+            "actual_vs_predicted_best_model.png",
+        ),
+        plot_actual_vs_predicted(
+            results["predictions"],
+            results["best_no_direct_fitted_model_key"],
+            results["best_no_direct_model_label"],
+            "No Direct Scoring Components",
+            figure_dir,
+            "actual_vs_predicted_no_direct_scoring_best_model.png",
         ),
     ]
-    random_forest_importance_path = plot_random_forest_feature_importance(
-        results["feature_effects"],
-        figure_dir,
-    )
-    if random_forest_importance_path is not None:
-        figure_paths.append(random_forest_importance_path)
+    for feature_set in results["feature_sets"]:
+        random_forest_importance_path = plot_random_forest_feature_importance(
+            results["feature_effects"],
+            feature_set["feature_set_key"],
+            feature_set["feature_set"],
+            figure_dir,
+        )
+        if random_forest_importance_path is not None:
+            figure_paths.append(random_forest_importance_path)
 
     model_paths = write_best_model(results, model_dir=model_dir)
 
@@ -519,6 +697,10 @@ def generate_modeling_outputs(
         "test_rows": results["test_rows"],
         "best_model_key": results["best_model_key"],
         "best_model_label": results["best_model_label"],
+        "best_feature_set_key": results["best_feature_set_key"],
+        "best_feature_set_label": results["best_feature_set_label"],
+        "best_no_direct_model_key": results["best_no_direct_model_key"],
+        "best_no_direct_model_label": results["best_no_direct_model_label"],
         "table_paths": table_paths,
         "figure_paths": figure_paths,
         "model_paths": model_paths,

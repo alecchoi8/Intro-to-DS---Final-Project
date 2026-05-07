@@ -82,6 +82,11 @@ python scripts/run_modeling.py
 
 This trains scikit-learn regression models for predicting `pts_per_game`: Dummy Mean Baseline, Linear Regression, Ridge Regression, Decision Tree Regression, Random Forest Regression, and Histogram Gradient Boosting Regression.
 
+Each model is evaluated with two feature sets:
+
+- Full feature set, including direct scoring components such as shot attempts, free throw attempts, and shooting percentages.
+- Restricted feature set, excluding direct scoring components to test how well non-scoring box score context predicts PPG.
+
 The script writes model comparison tables under `reports/modeling/`, selected figures under `figures/modeling/`, and the best fitted pipeline under `models/`.
 
 ## Final Deliverables
