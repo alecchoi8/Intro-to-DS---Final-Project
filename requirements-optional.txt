@@ -8,5 +8,8 @@ kagglehub>=1.0
 # long-path issues in some local runtimes, so install it only when needed.
 jupyter>=1.0
 
+# Lightweight local dashboard for running the pipeline and viewing findings.
+streamlit>=1.35
+
 # Optional stronger model. Install only if we decide the extra dependency is worth it.
 xgboost>=2.0

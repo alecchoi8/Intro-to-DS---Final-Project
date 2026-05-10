@@ -116,6 +116,7 @@ Tasks:
 - Analyze Random Forest feature importances. Implemented.
 - Interpret Linear Regression coefficients carefully after preprocessing. Implemented through standardized coefficient output.
 - Discuss limitations such as era changes, missing historical stats, and feature leakage concerns.
+- Add a lightweight local dashboard for running the pipeline and reviewing results. Implemented in `src/nba_scoring/dashboard.py`.
 
 Git checkpoint: `Add model evaluation and interpretation`
 

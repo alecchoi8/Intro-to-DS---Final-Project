@@ -10,6 +10,7 @@ Expected local outputs:
 
 - `model_performance.csv`
 - `test_predictions.csv`
+- `all_season_predictions.csv`
 - `feature_effects.csv`
 - `MODELING_SUMMARY.md`
 

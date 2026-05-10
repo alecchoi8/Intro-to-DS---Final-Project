@@ -298,23 +298,32 @@ def train_and_evaluate_models(df: pd.DataFrame) -> dict[str, Any]:
 
     metrics_rows: list[dict[str, Any]] = []
     prediction_frames: list[pd.DataFrame] = []
+    all_prediction_frames: list[pd.DataFrame] = []
     fitted_models: dict[str, Pipeline] = {}
     model_lookup: dict[str, dict[str, Any]] = {}
 
     identifier_columns = [column for column in IDENTIFIER_COLUMNS if column in test_df.columns]
     prediction_base = test_df[identifier_columns + [TARGET]].reset_index(drop=True)
+    train_labeled = train_df.copy()
+    train_labeled["split"] = "train"
+    test_labeled = test_df.copy()
+    test_labeled["split"] = "test"
+    all_df = pd.concat([train_labeled, test_labeled]).sort_index()
+    all_prediction_base = all_df[identifier_columns + ["split", TARGET]].reset_index(drop=True)
     train_target = train_df[TARGET]
     test_target = test_df[TARGET]
 
     for feature_set_order, feature_set in enumerate(feature_set_specs):
         train_features = train_df[feature_set.feature_columns]
         test_features = test_df[feature_set.feature_columns]
+        all_features = all_df[feature_set.feature_columns]
 
         for model_order, spec in enumerate(model_specs):
             fitted_model_key = f"{feature_set.key}__{spec.key}"
             pipeline = build_pipeline(spec, feature_set.feature_columns)
             pipeline.fit(train_features, train_target)
             predictions = pipeline.predict(test_features)
+            all_predictions = pipeline.predict(all_features)
 
             fitted_models[fitted_model_key] = pipeline
             model_lookup[fitted_model_key] = {
@@ -354,12 +363,29 @@ def train_and_evaluate_models(df: pd.DataFrame) -> dict[str, Any]:
             prediction_frame = prediction_frame.drop(columns=[TARGET])
             prediction_frames.append(prediction_frame)
 
+            all_prediction_frame = all_prediction_base.copy()
+            all_prediction_frame["fitted_model_key"] = fitted_model_key
+            all_prediction_frame["feature_set_key"] = feature_set.key
+            all_prediction_frame["feature_set"] = feature_set.label
+            all_prediction_frame["model_key"] = spec.key
+            all_prediction_frame["model"] = spec.label
+            all_prediction_frame["actual_pts_per_game"] = all_prediction_frame[TARGET]
+            all_prediction_frame["predicted_pts_per_game"] = all_predictions
+            all_prediction_frame["residual"] = (
+                all_prediction_frame["actual_pts_per_game"]
+                - all_prediction_frame["predicted_pts_per_game"]
+            )
+            all_prediction_frame["absolute_error"] = all_prediction_frame["residual"].abs()
+            all_prediction_frame = all_prediction_frame.drop(columns=[TARGET])
+            all_prediction_frames.append(all_prediction_frame)
+
     metrics_df = (
         pd.DataFrame(metrics_rows)
         .sort_values(["feature_set_order", "mae", "rmse"], ascending=[True, True, True])
         .reset_index(drop=True)
     )
     predictions_df = pd.concat(prediction_frames, ignore_index=True)
+    all_predictions_df = pd.concat(all_prediction_frames, ignore_index=True)
     feature_effects_df = extract_feature_effects(fitted_models, model_lookup)
     best_overall = metrics_df.sort_values(["mae", "rmse"], ascending=[True, True]).iloc[0]
     no_direct_metrics = metrics_df[metrics_df["feature_set_key"].eq("no_direct_scoring")]
@@ -377,6 +403,7 @@ def train_and_evaluate_models(df: pd.DataFrame) -> dict[str, Any]:
     return {
         "metrics": metrics_df,
         "predictions": predictions_df,
+        "all_predictions": all_predictions_df,
         "feature_effects": feature_effects_df,
         "fitted_models": fitted_models,
         "best_fitted_model_key": str(best_overall["fitted_model_key"]),
@@ -650,6 +677,7 @@ def generate_modeling_outputs(
     table_paths = [
         write_csv(results["metrics"], report_dir / "model_performance.csv"),
         write_csv(results["predictions"], report_dir / "test_predictions.csv"),
+        write_csv(results["all_predictions"], report_dir / "all_season_predictions.csv"),
         write_csv(results["feature_effects"], report_dir / "feature_effects.csv"),
         write_markdown_summary(
             results["metrics"],

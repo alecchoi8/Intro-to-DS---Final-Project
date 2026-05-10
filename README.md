@@ -89,6 +89,22 @@ Each model is evaluated with two feature sets:
 
 The script writes model comparison tables under `reports/modeling/`, selected figures under `figures/modeling/`, and the best fitted pipeline under `models/`.
 
+## Launch Local Dashboard
+
+Install Streamlit once:
+
+```powershell
+python3 -m pip install streamlit
+```
+
+Then launch the project UI:
+
+```powershell
+python3 scripts/run_dashboard.py
+```
+
+The dashboard can rebuild the processed dataset, regenerate EDA outputs, retrain models, and display the major tables, figures, feature importances, and prediction errors.
+
 ## Final Deliverables
 
 - Public GitHub repository link included at the end of the paper abstract.
